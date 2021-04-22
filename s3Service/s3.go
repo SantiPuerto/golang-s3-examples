@@ -2,16 +2,17 @@ package s3Service
 
 import (
 	"bytes"
-	"github.com/avaldigitallabs/guild-golang/upload-to-s3/constants"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 	"io/ioutil"
 	"log"
+
+	"github.com/avaldigitallabs/guild-golang/upload-to-s3/constants"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 )
 
-func UploadToBucket(file string) error {
+func UploadToBucket(file string, svc s3iface.S3API) error {
 	log.Printf("Begin file upload: %v", file)
 
 	text, err := readFile(file)
@@ -21,12 +22,7 @@ func UploadToBucket(file string) error {
 
 	body := []byte(text)
 
-	sess, err := session.NewSessionWithOptions(session.Options{})
-	if err != nil {
-		return err
-	}
-
-	_, err = s3.New(sess).PutObject(&s3.PutObjectInput{
+	_, err = svc.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(constants.S3_BUCKET_NAME),
 		Key:    aws.String(constants.S3_KEY_PREFIX + file),
 		Body:   bytes.NewReader(body),
@@ -40,15 +36,10 @@ func UploadToBucket(file string) error {
 	return nil
 }
 
-func DownloadFromBucket(file string) (io.ReadCloser, error) {
+func DownloadFromBucket(file string, svc s3iface.S3API) (io.ReadCloser, error) {
 	log.Printf("Begin file download: %v", file)
 
-	sess, err := session.NewSessionWithOptions(session.Options{})
-	if err != nil {
-		return nil, err
-	}
-
-	objectOutput, err := s3.New(sess).GetObject(&s3.GetObjectInput{
+	objectOutput, err := svc.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(constants.S3_BUCKET_NAME),
 		Key:    aws.String(constants.S3_KEY_PREFIX + file),
 	})
